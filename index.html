@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>CMDZE — CLI launcher</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: radial-gradient(circle at 20% 30%, #0a0f1e, #03060c);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Fira Code', 'JetBrains Mono', 'Cascadia Code', monospace;
+            padding: 1.5rem;
+        }
+
+        .terminal {
+            max-width: 880px;
+            width: 100%;
+            background: #0c0f1c;
+            background-image: linear-gradient(0deg, rgba(20, 30, 45, 0.3) 1px, transparent 1px);
+            background-size: 100% 3px;
+            border-radius: 28px;
+            box-shadow: 0 25px 45px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(72, 187, 255, 0.15), 0 0 0 2px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(2px);
+        }
+
+        .term-bar {
+            background: #1a1f2e;
+            padding: 0.8rem 1.5rem;
+            border-radius: 28px 28px 0 0;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            border-bottom: 1px solid #2a3348;
+        }
+
+        .win-dots {
+            display: flex;
+            gap: 8px;
+        }
+
+        .dot {
+            width: 13px;
+            height: 13px;
+            border-radius: 50%;
+        }
+        .red { background: #ff5f56; border: 1px solid #bf3e36; }
+        .yellow { background: #ffbd2e; border: 1px solid #b2891c; }
+        .green { background: #27c93f; border: 1px solid #18942b; }
+
+        .term-title {
+            color: #b3ceff;
+            font-size: 0.85rem;
+            letter-spacing: 0.3px;
+            background: #0b0f18;
+            padding: 0.2rem 1rem;
+            border-radius: 40px;
+            font-weight: 500;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.3), 0 1px 0 rgba(255,255,255,0.05);
+        }
+
+        .term-body {
+            padding: 2rem 2rem 2.2rem;
+        }
+
+        .prompt-line {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+            gap: 0.3rem;
+            font-size: 1.1rem;
+            color: #b7e0ff;
+            border-left: 3px solid #2b9eff;
+            padding-left: 1rem;
+            margin-bottom: 1.8rem;
+        }
+
+        .user { color: #5de4c7; font-weight: 600; }
+        .host { color: #ffb86b; }
+        .path { color: #8a9fd1; }
+
+        .cursor-static {
+            background: #5de4c7;
+            width: 10px;
+            height: 1.3rem;
+            display: inline-block;
+            vertical-align: middle;
+            margin-left: 5px;
+            animation: blink 1.2s step-end infinite;
+            box-shadow: 0 0 4px #5de4c7;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        .cmd-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2rem;
+            justify-content: center;
+            margin: 2rem 0 1rem;
+        }
+
+        /* Исправленные карточки — теперь flex-колонки с прижатой кнопкой */
+        .cmd-card {
+            background: rgba(10, 15, 27, 0.8);
+            backdrop-filter: blur(4px);
+            border: 1px solid #2b3b5c;
+            border-radius: 28px;
+            padding: 1.6rem 1.8rem;
+            width: 260px;
+            transition: all 0.25s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+            text-align: center;
+            box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.4);
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            min-height: 360px;
+        }
+
+        .cmd-card:hover {
+            transform: translateY(-6px);
+            border-color: #3f7bc0;
+            box-shadow: 0 18px 28px -12px #0a1e3a;
+            background: #0f1425;
+        }
+
+        .card-icon {
+            font-size: 2.6rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .command {
+            background: #010409;
+            padding: 0.5rem 0.9rem;
+            border-radius: 18px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            letter-spacing: 0.2px;
+            display: inline-block;
+            margin: 0.8rem 0;
+            border: 1px solid #2e405e;
+            color: #b7e1ff;
+            font-family: monospace;
+            word-break: break-word;
+        }
+
+        .cmd-desc {
+            color: #a3b9e6;
+            font-size: 0.85rem;
+            margin: 0.6rem 0;
+            word-break: break-word;
+        }
+
+        .badge {
+            font-size: 0.7rem;
+            background: #192237;
+            display: inline-block;
+            padding: 0.2rem 0.8rem;
+            border-radius: 40px;
+            color: #9dc4ff;
+            margin-bottom: 0.8rem;
+        }
+
+        /* Кнопка теперь прижимается к низу */
+        .cmd-btn {
+            display: inline-block;
+            background: #1f2a48;
+            padding: 0.5rem 1.6rem;
+            border-radius: 40px;
+            text-decoration: none;
+            color: white;
+            font-weight: 500;
+            margin-top: auto;
+            border: 1px solid #3c5688;
+            font-family: monospace;
+            font-size: 0.85rem;
+            transition: 0.1s linear;
+            align-self: center;
+        }
+
+        .cmd-btn:hover {
+            background: #2d3d6e;
+            border-color: #6c9eff;
+            box-shadow: 0 0 6px #2d72d1;
+        }
+
+        hr {
+            border-color: #26304b;
+            margin: 1.5rem 0 0.8rem;
+        }
+
+        .footer-term {
+            font-size: 0.75rem;
+            text-align: center;
+            color: #4f6996;
+            border-top: 1px solid #1c253d;
+            padding-top: 1rem;
+            margin-top: 1rem;
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .footer-term span {
+            color: #5b7bb5;
+        }
+
+        @media (max-width: 620px) {
+            .term-body {
+                padding: 1.5rem;
+            }
+            .cmd-card {
+                width: 100%;
+                max-width: 300px;
+                min-height: auto;
+            }
+            .prompt-line {
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="terminal">
+    <div class="term-bar">
+        <div class="win-dots">
+            <div class="dot red"></div>
+            <div class="dot yellow"></div>
+            <div class="dot green"></div>
+        </div>
+        <div class="term-title">cmdze@selector:~/launcher</div>
+        <div style="flex:1"></div>
+        <div style="font-size:0.7rem; opacity:0.6;">󰇄</div>
+    </div>
+    <div class="term-body">
+        <div class="prompt-line">
+            <span class="user">cmdze</span>
+            <span class="host">@trusted</span>
+            <span>:</span>
+            <span class="path">~/choose-destination</span>
+            <span>$></span>
+            <span style="color:#9cdcfe;">./select --mode interactive</span>
+            <span class="cursor-static"></span>
+        </div>
+
+        <div style="margin-bottom: 0.5rem; color:#adbdd9; font-size:0.9rem; border-left: 2px solid #316d9e; padding-left: 1rem;">
+            ⚡ Два валидных эндпоинта обнаружены. Выберите целевой хост:
+        </div>
+
+        <div class="cmd-grid">
+            <!-- вариант 1: cmdze.c6t.ru -->
+            <div class="cmd-card">
+                <div class="card-icon">🖥️</div>
+                <div class="command">~/deploy/cmdze.c6t.ru</div>
+                <div class="cmd-desc">
+                    основной сайт · GTA проекты · бизнес · форумы
+                </div>
+                <div class="badge">production ready</div>
+                <a href="http://cmdze.c6t.ru" class="cmd-btn" target="_blank" rel="noopener noreferrer">
+                    ▶ перейти по cmdze.c6t.ru
+                </a>
+            </div>
+
+            <!-- вариант 2: proxbrowser.github.io/cmdze — исправлено: кнопка внутри, всё помещается -->
+            <div class="cmd-card">
+                <div class="card-icon">📁</div>
+                <div class="command">~/hub/proxbrowser.github.io/cmdze</div>
+                <div class="cmd-desc">
+                    портфолио · кейсы · зеркало-репозиторий
+                </div>
+                <div class="badge">github pages</div>
+                <a href="https://proxbrowser.github.io/cmdze" class="cmd-btn" target="_blank" rel="noopener noreferrer">
+                    ▶ перейти по proxbrowser.github.io/cmdze
+                </a>
+            </div>
+        </div>
+
+        <hr>
+        <div class="footer-term">
+            <span> cmdze@trusted:~/why-us $> cat reasons.txt --why-cmdze</span>
+            <span>✓ поддержка и дизайн на ваш вкус</span>
+            <span>✓ доверенный разработчик</span>
+            <span>✓ примеры готовых сайтов</span>
+        </div>
+        <div style="text-align: center; font-size: 0.7rem; margin-top: 1.2rem; opacity: 0.6; color:#426491;">
+            ⚙️ выберите вариант — оба ведут в экосистему CMDZE
+        </div>
+    </div>
+</div>
+</body>
+</html>
